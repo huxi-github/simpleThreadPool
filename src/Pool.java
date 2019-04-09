@@ -2,11 +2,12 @@ import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Pool {
-private ArrayList<Thread> threads=null;  //只是用来管理的
+private ArrayList<Thread> threads=null;  //用来管理[销毁]
 private ArrayBlockingQueue<Runnable> taskqueue = null;
 private int nthreadmax=5; //默认 5个工作线程
 private int nthreadactive=0; //活动线程
-	
+private boolean destroyed=false; //活动线程
+
 public Pool() {
 		this.taskqueue =new ArrayBlockingQueue<Runnable>(8); 
 		this.threads=new ArrayList<Thread>(10);  
@@ -16,20 +17,18 @@ public Pool(int threadNum) {
 	this.nthreadmax=threadNum;
 	this.taskqueue =new ArrayBlockingQueue<Runnable>(8); 
 	this.threads=new ArrayList<Thread>(10);  
-
+	this.destroyed=false;
 }
 public Pool(int threadNum,int taskQueSize) {
 	this.nthreadmax=threadNum;
 	this.taskqueue =new ArrayBlockingQueue<Runnable>(taskQueSize); 
 	this.threads=new ArrayList<Thread>(threadNum*2);  
-
+	this.destroyed=false;
 }
 
 public void excuteTask(Runnable newtask){
 			
 		if(nthreadactive<nthreadmax) {
-
-				//方案二： //执行任务临时new
 				Thread thread=new Thread(new Runnable() {
 					Runnable tempnewtask=null;
 					
@@ -37,10 +36,16 @@ public void excuteTask(Runnable newtask){
 					public void run() {
 						this.tempnewtask=newtask;
 						for(;;) {
+							
+							if(destroyed) break;  //销毁的线程池 不会执行任何任务
+								
 							if(tempnewtask!=null) {
 								tempnewtask.run(); //run only once;
 								tempnewtask=null;
 							}
+							
+							
+							
 							Runnable queueTask=taskqueue.poll();  //taskqueue本身是线程安全的，可以阻塞
 							if(queueTask != null)
 							queueTask.run();
@@ -61,6 +66,13 @@ public void excuteTask(Runnable newtask){
 				}
 		}
 
+}
+
+public void destroyPool() {  //java 里面自动回收内存，故秩序同步线程即可 //
+	this.destroyed=true;
+	
+	System.out.println("destroyPool"); 
+	
 }
 
 public static void main(String[] args) {
@@ -92,5 +104,6 @@ public static void main(String[] args) {
 		pool.excuteTask(newtask2);
 		pool.excuteTask(newtask3);
 	}
+	pool.destroyPool();
 }
 }
