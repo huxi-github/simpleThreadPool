@@ -18,6 +18,12 @@ public Pool(int threadNum) {
 	this.threads=new ArrayList<Thread>(10);  
 
 }
+public Pool(int threadNum,int taskQueSize) {
+	this.nthreadmax=threadNum;
+	this.taskqueue =new ArrayBlockingQueue<Runnable>(taskQueSize); 
+	this.threads=new ArrayList<Thread>(threadNum*2);  
+
+}
 
 public void excuteTask(Runnable newtask){
 			
