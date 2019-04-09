@@ -54,7 +54,7 @@ public void excuteTask(Runnable newtask){
 							else {
 								try {
 									while(taskqueue.size()==0) //size==0,让该线程，wait.不要空循环了
-									objcondition.wait();       //condition 为几个线程共有的，方便通信 
+									objcondition.wait();       //condition 为几个线程共有的，方便通信      ||该方法会释放锁
 								} catch (InterruptedException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
@@ -68,12 +68,15 @@ public void excuteTask(Runnable newtask){
 				nthreadactive++;
 				threads.add(thread);
 		}
-		else {			
+		else synchronized (objcondition){			
 					//task 已经达到maxnums已经满了,塞入任务队列
 				if(!taskqueue.offer(newtask))
 				System.out.println("taskqueue is full rejeact this task |size="+taskqueue.size()+"remaining"+taskqueue.remainingCapacity() ); 
 				else {
 					System.out.println("add a task to taskqueue   |currentsize="+taskqueue.size()+"remaining"+taskqueue.remainingCapacity() );
+				
+					System.out.println(" awake a thread");  //内部会依次检查，找到一个线程 让其 awake
+					objcondition.notify();
 				}
 		}
 
