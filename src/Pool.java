@@ -6,7 +6,7 @@ private ArrayList<Thread> threads=null;  //用来管理[销毁]
 private ArrayBlockingQueue<Runnable> taskqueue = null;
 private int nthreadmax=5; //默认 5个工作线程
 private int nthreadactive=0; //活动线程
-private boolean destroyed=false; //活动线程
+private volatile boolean destroyed=false; //活动线程
 private Object objcondition=new Object(); // 
 private Object objmutex=new Object(); // 
 
@@ -53,8 +53,14 @@ public void excuteTask(Runnable newtask){
 							queueTask.run();
 							else {
 								try {
-									while(taskqueue.size()==0) //size==0,让该线程，wait.不要空循环了
-									objcondition.wait();       //condition 为几个线程共有的，方便通信      ||该方法会释放锁
+									while(taskqueue.size()==0&&!destroyed) //1.size==0,让该线程，wait.不要空循环了       //2.destroyed==true 也不要wait 了
+										objcondition.wait();    //condition 为几个线程共有的，方便通信      ||该方法会释放锁
+									   
+									
+									if(destroyed) {
+										System.out.println(Thread.currentThread().getName()+"is destroyed"); 
+										break;
+									}
 								} catch (InterruptedException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
@@ -83,7 +89,12 @@ public void excuteTask(Runnable newtask){
 }
 
 public void destroyPool() {  //java 里面自动回收内存，故秩序同步线程即可 //
+	
+	synchronized (objcondition) {     //主线程等待 获取 锁 //需要子线程释放
 	this.destroyed=true;
+	objcondition.notifyAll(); 		//通知 其他休眠的线程，awake 再退出
+	}
+	
 	
 	System.out.println("destroyPool"); 
 	
@@ -118,7 +129,23 @@ public static void main(String[] args) {
 		pool.excuteTask(newtask2);
 		pool.excuteTask(newtask3);
 	}
-//	pool.destroyPool();
+	try {
+		Thread.sleep(2000);
+	} catch (InterruptedException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	
+	
+	try {
+		System.out.println("trying to destroy");
+		pool.destroyPool();
+	} catch (InterruptedException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	
+	
 
 }
 }
