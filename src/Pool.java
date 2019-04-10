@@ -94,34 +94,54 @@ public void destroyPool() {  //java 里面自动回收内存，故秩序同步�
 	}
 }
 
-public static void main(String[] args) {
-	Pool pool=new Pool(5);
+public static void main(String[] args) throws InterruptedException { 
+	Pool pool=new Pool(3);
 	Runnable newtask=new Runnable() {	
 		@Override
 		public void run() {
 		System.out.println("hello1");
+		try {
+			Thread.sleep(50);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("ok1");
 		}
 	}; 
 	Runnable newtask2=new Runnable() {	
 		@Override
 		public void run() {
 		System.out.println("hello2");
+		try {
+			Thread.sleep(40);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("ok2");
 		}
 	}; 
 	Runnable newtask3=new Runnable() {
 		@Override
 		public void run() {
 		System.out.println("hello3");
+		System.out.println("ok3");
 		}
 	}; 
-	
-	for (int i = 0; i < 4; i++) {
+
+	for (int i = 0; i < 10; i++) {
+		System.out.println("add 3 task");
 		pool.excuteTask(newtask);
 		pool.excuteTask(newtask2);
 		pool.excuteTask(newtask3);
+		Thread.sleep(10);
+		
 	}
 
-	System.out.println("trying to destroy");
+	Thread.sleep(1000);
+
+	System.out.println("trying to destroy...");
 	pool.destroyPool();
 
 }
