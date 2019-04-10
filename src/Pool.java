@@ -34,7 +34,7 @@ public void excuteTask(Runnable newtask){
 					@Override
 					public void run() {
 						this.tempnewtask=newtask;
-						for(;;) synchronized (objcondition) {
+						for(;;)  {
 							
 							if(destroyed) break;  //销毁的线程池 不会执行任何任务
 								
@@ -44,23 +44,26 @@ public void excuteTask(Runnable newtask){
 							}
 							//taskqueue本身是线程安全的，可以阻塞
 							Runnable queueTask=taskqueue.poll();  
-							if(queueTask != null)
-							queueTask.run();
-							else {
-								try {
-									while(taskqueue.size()==0&&!destroyed) //1.size==0,让该线程，wait.不要空循环了   //2.destroyed==true 也不要wait 了
-										objcondition.wait();    //condition 为几个线程共有的，方便通信      ||该方法会释放锁
-									   
-									
-									if(destroyed) {
-										System.out.println(Thread.currentThread().getName()+"is destroyed"); 
-										break;
-									}
-								} catch (InterruptedException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
+							if(queueTask == null)
+								synchronized (objcondition)
+								{
+											try {
+												while(taskqueue.size()==0&&!destroyed) //1.size==0,让该线程，wait.不要空循环了   //2.destroyed==true 也不要wait 了
+													objcondition.wait();    //condition 为几个线程共有的，方便通信      ||该方法会释放锁
+												   
+												
+												if(destroyed) {
+													System.out.println(Thread.currentThread().getName()+"is destroyed"); 
+													break;
+												}
+											} catch (InterruptedException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											}
+								}else    //任务执行前，释放锁
+								{
+									queueTask.run();  //函数运行过程不阻塞,不需要锁
 								}
-							}
 						}
 					
 					}
